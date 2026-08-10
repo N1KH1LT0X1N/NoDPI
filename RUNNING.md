@@ -16,6 +16,23 @@ This creates a `.venv` folder with its own Python interpreter. NoDPI has **no th
 
 ## Starting NoDPI
 
+### Recommended: `scripts\run-nodpi.ps1` (auto-toggles the system proxy)
+
+Running NoDPI alone does nothing unless Windows is actually configured to send traffic through it. This wrapper starts NoDPI **and** turns the Windows system proxy ON (pointed at `127.0.0.1:8881`) for the duration, then automatically turns it back OFF when NoDPI stops (`Ctrl+C` or the window closes) — so it never gets left on when you're on a network (e.g. home WiFi) that doesn't need it.
+
+```powershell
+.\scripts\run-nodpi.ps1
+```
+
+This defaults to `--blacklist blacklists\big-blacklist.txt`. To pass your own arguments (forwarded straight to `src\main.py`):
+```powershell
+.\scripts\run-nodpi.ps1 --blacklist blacklists\big-blacklist.txt --host 127.0.0.1 --port 8881
+```
+
+See [`scripts\enable-proxy.ps1`](scripts/enable-proxy.ps1) / [`scripts\disable-proxy.ps1`](scripts/disable-proxy.ps1) if you ever need to toggle the proxy manually (e.g. NoDPI crashed without running the `finally` cleanup).
+
+### Manual (proxy setting not managed for you)
+
 Run this any time from the repo root, in a terminal you're fine leaving open (the proxy runs in the foreground and stops when the terminal closes):
 
 **PowerShell / cmd:**
@@ -32,6 +49,8 @@ uv run src\main.py --blacklist blacklists\big-blacklist.txt --host 127.0.0.1 --p
 ```powershell
 .venv\Scripts\python.exe src\main.py --blacklist blacklists\big-blacklist.txt
 ```
+
+With this manual path, you're responsible for toggling the system proxy yourself (see below) — it won't happen automatically.
 
 > **Git Bash note:** if you run this from Git Bash instead of PowerShell/cmd, you may hit a `UnicodeEncodeError` from the startup banner (Git Bash's console codepage can't render the box-drawing characters). Fix by setting `PYTHONUTF8=1` first, e.g. `PYTHONUTF8=1 .venv/Scripts/python.exe src/main.py --blacklist blacklists/big-blacklist.txt`. PowerShell and cmd don't need this.
 
@@ -59,4 +78,6 @@ uv run src\main.py --blacklist blacklists\big-blacklist.txt --host 127.0.0.1 --p
 
 Press `Ctrl+C` in the terminal running it, or just close the terminal window.
 
-**Remember to turn off your browser/system HTTP proxy setting after stopping NoDPI**, or your browser won't be able to load anything.
+**If you started it with `scripts\run-nodpi.ps1`**, the system proxy is turned off automatically as part of stopping — nothing else to do.
+
+**If you started it manually** (the "Manual" section above), **remember to turn off your browser/system HTTP proxy setting yourself** after stopping NoDPI (`.\scripts\disable-proxy.ps1` or Settings → Network & Internet → Proxy), or your browser won't be able to load anything.
