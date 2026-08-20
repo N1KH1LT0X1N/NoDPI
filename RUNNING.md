@@ -1,6 +1,8 @@
 # Running NoDPI on Windows (manual start, via `uv`)
 
-This repo is set up to run **from source**, with the virtual environment managed by [`uv`](https://github.com/astral-sh/uv) instead of the stock `venv` module. NoDPI is **not** registered for Windows startup — it only runs when you start it yourself from a terminal, and stops when you close that terminal or hit `Ctrl+C`.
+This repo is set up to run **from source**, with the virtual environment managed by [`uv`](https://github.com/astral-sh/uv) instead of the stock `venv` module. NoDPI is **not** registered for Windows startup — it only runs when you start it yourself from a terminal.
+
+> **Always stop NoDPI with `Ctrl+C`, never by closing the terminal window/tab.** When you run it via `scripts\run-nodpi.ps1`, `Ctrl+C` lets the script turn the Windows system proxy back off before exiting. Closing the window instead kills the whole process tree instantly — the cleanup code never gets to run, and Windows is left pointed at a proxy address nothing is listening on anymore, which looks like your entire internet connection is broken. If that happens, run `.\scripts\disable-proxy.ps1` to recover.
 
 For browser proxy configuration (Firefox/Chrome/Edge/etc.), see [`NODPI_SETUP.md`](NODPI_SETUP.md) — this doc only covers getting the proxy process itself running.
 
@@ -18,7 +20,7 @@ This creates a `.venv` folder with its own Python interpreter. NoDPI has **no th
 
 ### Recommended: `scripts\run-nodpi.ps1` (auto-toggles the system proxy)
 
-Running NoDPI alone does nothing unless Windows is actually configured to send traffic through it. This wrapper starts NoDPI **and** turns the Windows system proxy ON (pointed at `127.0.0.1:8881`) for the duration, then automatically turns it back OFF when NoDPI stops (`Ctrl+C` or the window closes) — so it never gets left on when you're on a network (e.g. home WiFi) that doesn't need it.
+Running NoDPI alone does nothing unless Windows is actually configured to send traffic through it. This wrapper starts NoDPI **and** turns the Windows system proxy ON (pointed at `127.0.0.1:8881`) for the duration, then automatically turns it back OFF when you stop NoDPI with `Ctrl+C` — so it never gets left on when you're on a network (e.g. home WiFi) that doesn't need it. This only works if you stop it with `Ctrl+C`; closing the window skips the cleanup (see warning above).
 
 ```powershell
 .\scripts\run-nodpi.ps1
@@ -76,8 +78,19 @@ With this manual path, you're responsible for toggling the system proxy yourself
 
 ## Stopping NoDPI
 
-Press `Ctrl+C` in the terminal running it, or just close the terminal window.
+Press `Ctrl+C` in the terminal running it. **Do not close the terminal window/tab directly** — see the warning at the top of this doc.
 
-**If you started it with `scripts\run-nodpi.ps1`**, the system proxy is turned off automatically as part of stopping — nothing else to do.
+**If you started it with `scripts\run-nodpi.ps1`**, `Ctrl+C` turns the system proxy off automatically as part of stopping — nothing else to do.
 
 **If you started it manually** (the "Manual" section above), **remember to turn off your browser/system HTTP proxy setting yourself** after stopping NoDPI (`.\scripts\disable-proxy.ps1` or Settings → Network & Internet → Proxy), or your browser won't be able to load anything.
+
+**If NoDPI ever gets killed some other way** (window closed, Task Manager, crash) and your internet looks broken afterward, run `.\scripts\disable-proxy.ps1` to restore direct traffic.
+
+## Known issue: Windows Mobile Hotspot + a single-radio Wi-Fi card
+
+This is unrelated to NoDPI itself, but shows up in the same workflow: if your laptop has only one Wi-Fi radio (most laptops), turning on Windows Mobile Hotspot while connected to Wi-Fi forces that one radio to act as a client and an access point at the same time. On some chipsets (Realtek 8852BE/8852BE-VT in particular) this dual-role mode is unstable and can lock up the radio entirely — the adapter drops off the network it was connected to and stops seeing any networks at all until you reboot.
+
+If this happens to you:
+- It's a Wi-Fi driver/hardware limitation, not something these scripts can fix or cause.
+- Avoid running Mobile Hotspot and staying connected to Wi-Fi on the same laptop for long stretches. If you need internet on another device, prefer that device's own hotspot instead of sharing from this laptop.
+- Check for a newer Wi-Fi driver (Windows Update or the laptop OEM's site) — this class of bug does get patched over time.
